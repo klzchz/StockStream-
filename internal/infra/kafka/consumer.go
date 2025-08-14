@@ -1,47 +1,36 @@
 package kafka
 
 import (
-	"fmt"
-
 	ckafka "github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
 type Consumer struct {
 	ConfigMap *ckafka.ConfigMap
 	Topics    []string
-	consumer  *ckafka.Consumer
 }
 
-func NewConsumer(configMap *ckafka.ConfigMap, topics []string) (*Consumer, error) {
-	consumer, err := ckafka.NewConsumer(configMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create consumer: %w", err)
-	}
-
-	c := &Consumer{
+func NewConsumer(configMap *ckafka.ConfigMap, topics []string) *Consumer {
+	return &Consumer{
 		ConfigMap: configMap,
 		Topics:    topics,
-		consumer:  consumer,
 	}
-
-	// Subscribe to topics
-	err = consumer.SubscribeTopics(topics, nil)
-	if err != nil {
-		consumer.Close()
-		return nil, fmt.Errorf("failed to subscribe to topics: %w", err)
-	}
-
-	return c, nil
 }
 
-func (c *Consumer) Consume() (*ckafka.Message, error) {
-	msg, err := c.consumer.ReadMessage(-1)
+func (c *Consumer) Consume(msgChan chan *ckafka.Message) error {
+	consumer, err := ckafka.NewConsumer(c.ConfigMap)
 	if err != nil {
-		return nil, fmt.Errorf("consumer error: %w", err)
+		panic(err)
 	}
-	return msg, nil
-}
+	err = consumer.SubscribeTopics(c.Topics, nil)
+	if err != nil {
+		panic(err)
+	}
+	for {
+		msg, err := consumer.ReadMessage(-1)
+		if err != nil {
+			msgChan <- msg
 
-func (c *Consumer) Close() error {
-	return c.consumer.Close()
+		}
+	}
+
 }
