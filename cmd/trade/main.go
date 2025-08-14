@@ -56,6 +56,7 @@ func main() {
 	for res := range ordersOut {
 		output := transformer.TransformOutput(res)
 		outputJson, err := json.MarshalIndent(output, "", "  ")
+		fmt.Println("Processed order:", string(outputJson))
 		if err != nil {
 			panic(err)
 		}
